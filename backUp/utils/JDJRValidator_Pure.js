@@ -1,9 +1,11 @@
-const http = require('http');
+const https = require('https');
 const stream = require('stream');
 const zlib = require('zlib');
 const vm = require('vm');
 const PNG = require('png-js');
-const UA = require('../USER_AGENTS.js').USER_AGENT;
+let UA = require('../USER_AGENTS.js').USER_AGENT;
+const validatorCount = process.env.JDJR_validator_Count ? process.env.JDJR_validator_Count : 100
+
 
 Math.avg = function average() {
   var sum = 0;
@@ -123,28 +125,96 @@ class PuzzleRecognizer {
     // not found
     return -1;
   }
+
+  runWithCanvas() {
+    const {createCanvas, Image} = require('canvas');
+    const canvas = createCanvas();
+    const ctx = canvas.getContext('2d');
+    const imgBg = new Image();
+    const imgPatch = new Image();
+    const prefix = 'data:image/png;base64,';
+
+    imgBg.src = prefix + this.rawBg;
+    imgPatch.src = prefix + this.rawPatch;
+    const {naturalWidth: w, naturalHeight: h} = imgBg;
+    canvas.width = w;
+    canvas.height = h;
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(imgBg, 0, 0, w, h);
+
+    const width = w;
+    const {naturalWidth, naturalHeight} = imgPatch;
+    const posY = this.y + PUZZLE_PAD + ((naturalHeight - PUZZLE_PAD) / 2) - (PUZZLE_GAP / 2);
+    // const cData = ctx.getImageData(0, a.y + 10 + 20 - 4, 360, 8).data;
+    const cData = ctx.getImageData(0, posY, width, PUZZLE_GAP).data;
+    const lumas = [];
+
+    for (let x = 0; x < width; x++) {
+      var sum = 0;
+
+      // y xais
+      for (let y = 0; y < PUZZLE_GAP; y++) {
+        var idx = x * 4 + y * (width * 4);
+        var r = cData[idx];
+        var g = cData[idx + 1];
+        var b = cData[idx + 2];
+        var luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+        sum += luma;
+      }
+
+      lumas.push(sum / PUZZLE_GAP);
+    }
+
+    const n = 2; // minium macroscopic image width (px)
+    const margin = naturalWidth - PUZZLE_PAD;
+    const diff = 20; // macroscopic brightness difference
+    const radius = PUZZLE_PAD;
+    for (let i = 0, len = lumas.length - 2 * 4; i < len; i++) {
+      const left = (lumas[i] + lumas[i + 1]) / n;
+      const right = (lumas[i + 2] + lumas[i + 3]) / n;
+      const mi = margin + i;
+      const mLeft = (lumas[mi] + lumas[mi + 1]) / n;
+      const mRigth = (lumas[mi + 2] + lumas[mi + 3]) / n;
+
+      if (left - right > diff && mLeft - mRigth < -diff) {
+        const pieces = lumas.slice(i + 2, margin + i + 2);
+        const median = pieces.sort((x1, x2) => x1 - x2)[20];
+        const avg = Math.avg(pieces);
+
+        // noise reducation
+        if (median > left || median > mRigth) return;
+        if (avg > 100) return;
+        // console.table({left,right,mLeft,mRigth,median});
+        // ctx.fillRect(i+n-radius, 0, 1, 360);
+        // console.log(i+n-radius);
+        return i + n - radius;
+      }
+    }
+
+    // not found
+    return -1;
+  }
 }
 
 const DATA = {
   "appId": "17839d5db83",
-  "scene": "cww",
   "product": "embed",
   "lang": "zh_CN",
 };
-
-// const SERVER = 'iv.jd.com';
-const SERVER = '61.49.99.122';
+const SERVER = 'iv.jd.com';
 
 class JDJRValidator {
   constructor() {
     this.data = {};
     this.x = 0;
     this.t = Date.now();
+    this.count = 0;
   }
 
-  async run() {
+  async run(scene = 'cww', eid='') {
     const tryRecognize = async () => {
-      const x = await this.recognize();
+      const x = await this.recognize(scene, eid);
 
       if (x > 0) {
         return x;
@@ -160,32 +230,40 @@ class JDJRValidator {
     // console.log(pos[pos.length-1][2] -Date.now());
     // await sleep(4500);
     await sleep(pos[pos.length - 1][2] - Date.now());
-    const result = await JDJRValidator.jsonp('/slide/s.html', {d, ...this.data});
+    this.count++;
+    const result = await JDJRValidator.jsonp('/slide/s.html', {d, ...this.data}, scene);
 
     if (result.message === 'success') {
-      console.log(result);
-      console.log('JDJRValidator: %fs', (Date.now() - this.t) / 1000);
+      // console.log(result);
+      console.log('JDJR验证用时: %fs', (Date.now() - this.t) / 1000);
       return result;
     } else {
-      console.count(JSON.stringify(result));
-      await sleep(300);
-      return await this.run();
+      console.log(`验证失败: ${this.count}/${validatorCount}`);
+      // console.log(JSON.stringify(result));
+      if(this.count >= validatorCount){
+        console.log("JDJR验证次数已达上限，退出验证");
+        return result;
+      }else{
+        await sleep(300);
+        return await this.run(scene, eid);
+      }
     }
   }
 
-  async recognize() {
-    const data = await JDJRValidator.jsonp('/slide/g.html', {e: ''});
+  async recognize(scene, eid) {
+    const data = await JDJRValidator.jsonp('/slide/g.html', {e: eid}, scene);
     const {bg, patch, y} = data;
     // const uri = 'data:image/png;base64,';
     // const re = new PuzzleRecognizer(uri+bg, uri+patch, y);
     const re = new PuzzleRecognizer(bg, patch, y);
+    // console.log(JSON.stringify(re))
     const puzzleX = await re.run();
 
     if (puzzleX > 0) {
       this.data = {
         c: data.challenge,
         w: re.w,
-        e: '',
+        e: eid,
         s: '',
         o: '',
       };
@@ -207,61 +285,63 @@ class JDJRValidator {
       }
     }
 
-    // console.log('successful: %f\%', (count / n) * 100);
+    console.log('验证成功: %f\%', (count / n) * 100);
+    console.clear()
     console.timeEnd('PuzzleRecognizer');
   }
 
-  static jsonp(api, data = {}) {
+  static jsonp(api, data = {}, scene) {
     return new Promise((resolve, reject) => {
       const fnId = `jsonp_${String(Math.random()).replace('.', '')}`;
       const extraData = {callback: fnId};
-      const query = new URLSearchParams({...DATA, ...extraData, ...data}).toString();
-      const url = `http://${SERVER}${api}?${query}`;
+      const query = new URLSearchParams({...DATA,...{"scene": scene}, ...extraData, ...data}).toString();
+      const url = `https://${SERVER}${api}?${query}`;
       const headers = {
         'Accept': '*/*',
         'Accept-Encoding': 'gzip,deflate,br',
-        'Accept-Language': 'zh-CN,en-US',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
         'Connection': 'keep-alive',
-        'Host': SERVER,
+        'Host': "iv.jd.com",
         'Proxy-Connection': 'keep-alive',
-        'Referer': 'https://h5.m.jd.com/babelDiy/Zeus/2wuqXrZrhygTQzYA7VufBEpj4amH/index.html',
+        'Referer': 'https://h5.m.jd.com/',
         'User-Agent': UA,
       };
-      const req = http.get(url, {headers}, (response) => {
-        try {
-          let res = response;
-          if (res.headers['content-encoding'] === 'gzip') {
-            const unzipStream = new stream.PassThrough();
-            stream.pipeline(
-              response,
-              zlib.createGunzip(),
-              unzipStream,
-              reject,
-            );
-            res = unzipStream;
-          }
-          res.setEncoding('utf8');
 
-          let rawData = '';
-
-          res.on('data', (chunk) => rawData += chunk);
-          res.on('end', () => {
-            try {
-              const ctx = {
-                [fnId]: (data) => ctx.data = data,
-                data: {},
-              };
-              vm.createContext(ctx);
-              vm.runInContext(rawData, ctx);
-              res.resume();
-              resolve(ctx.data);
-            } catch (e) {
-              console.log('生成验证码必须使用大陆IP')
-            }
-          })
-        } catch (e) {
+      const req = https.get(url, {headers}, (response) => {
+        let res = response;
+        if (res.headers['content-encoding'] === 'gzip') {
+          const unzipStream = new stream.PassThrough();
+          stream.pipeline(
+            response,
+            zlib.createGunzip(),
+            unzipStream,
+            reject,
+          );
+          res = unzipStream;
         }
-      })
+        res.setEncoding('utf8');
+
+        let rawData = '';
+
+        res.on('data', (chunk) => rawData += chunk);
+        res.on('end', () => {
+          try {
+            const ctx = {
+              [fnId]: (data) => ctx.data = data,
+              data: {},
+            };
+
+            vm.createContext(ctx);
+            vm.runInContext(rawData, ctx);
+
+            // console.log(ctx.data);
+            res.resume();
+            resolve(ctx.data);
+          } catch (e) {
+            reject(e);
+          }
+        });
+      });
 
       req.on('error', reject);
       req.end();
@@ -315,7 +395,7 @@ function getCoordinate(c) {
   return b.join("")
 }
 
-const HZ = 5;
+const HZ = 20;
 
 class MousePosFaker {
   constructor(puzzleX) {
@@ -420,17 +500,24 @@ class MousePosFaker {
   }
 }
 
-function injectToRequest(fn) {
+function injectToRequest(fn,scene = 'cww', ua = '') {
+  if(ua) UA = ua
   return (opts, cb) => {
     fn(opts, async (err, resp, data) => {
       if (err) {
-        console.error('Failed to request.');
+        console.error(JSON.stringify(err));
         return;
       }
-
       if (data.search('验证') > -1) {
-        console.log('JDJRValidator trying......');
-        const res = await new JDJRValidator().run();
+        console.log('JDJR验证中......');
+				let arr = opts.url.split("&")
+				let eid = ''
+				for(let i of arr){
+					if(i.indexOf("eid=")>-1){
+						eid = i.split("=") && i.split("=")[1] || ''
+					}
+				}
+        const res = await new JDJRValidator().run(scene, eid);
 
         opts.url += `&validate=${res.validate}`;
         fn(opts, cb);
@@ -441,7 +528,4 @@ function injectToRequest(fn) {
   };
 }
 
-module.exports = {
-  JDJRValidator,
-  injectToRequest
-}
+exports.injectToRequest = injectToRequest;

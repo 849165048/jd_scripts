@@ -23,7 +23,7 @@ let shareCodeSelf: string[] = [], log: { help: string, runTimes: string } = {hel
       UserName = decodeURIComponent(cookie.match(/pt_pin=([^;]*)/)![1])
       console.log(`\n开始【京东账号${index + 1}】${UserName}\n`)
 
-      h5stTool = new H5ST("0c010", USER_AGENT, "8389547038003203")
+      h5stTool = new H5ST("0c010", USER_AGENT, process.env.FP_0C010 || "")
       await h5stTool.__genAlgo()
 
       res = await api('initForFarm', {"version": 11, "channel": 3})
@@ -37,7 +37,7 @@ let shareCodeSelf: string[] = [], log: { help: string, runTimes: string } = {hel
       for (let i = 0; i < 5; i++) {
         try {
           let today: number = getDate(new Date())
-          res = await get(`https://api.jdsharecode.xyz/api/runTimes0509?activityId=farm&sharecode=${res.farmUserPro.shareCode}&today=${today}`)
+          res = await get(`https://api.jdsharecode.xyz/api/runTimes0701?activityId=farm&sharecode=${res.farmUserPro.shareCode}&today=${today}`)
           console.log(res)
           log.runTimes += `第${i + 1}次${res}\n`
           break
@@ -55,12 +55,13 @@ let shareCodeSelf: string[] = [], log: { help: string, runTimes: string } = {hel
   }
 
   o2s(shareCodeSelf, '内部互助')
+  let full: string[] = []
   for (let [index, value] of cookiesArr.entries()) {
     try {
       cookie = value
       UserName = decodeURIComponent(cookie.match(/pt_pin=([^;]*)/)![1])
 
-      h5stTool = new H5ST("0c010", USER_AGENT, "8389547038003203")
+      h5stTool = new H5ST("0c010", USER_AGENT, process.env.FP_0C010 || "")
       await h5stTool.__genAlgo()
 
       let shareCodePool: string[] = await getShareCodePool('farm', 50)
@@ -68,6 +69,10 @@ let shareCodeSelf: string[] = [], log: { help: string, runTimes: string } = {hel
 
       for (let code of shareCode) {
         console.log(`账号${index + 1} ${UserName} 去助力 ${code} ${shareCodeSelf.includes(code) ? "*内部*" : ""}`)
+        if (full.includes(code)) {
+          console.log('full contains')
+          continue
+        }
         res = await api('initForFarm', {"mpin": "", "utm_campaign": "t_335139774", "utm_medium": "appshare", "shareCode": code, "utm_term": "Wxfriends", "utm_source": "iosapp", "imageUrl": "", "nickName": "", "version": 14, "channel": 2, "babelChannel": 0})
         if (res.helpResult.code === '7') {
           console.log('不给自己助力')
@@ -83,6 +88,7 @@ let shareCodeSelf: string[] = [], log: { help: string, runTimes: string } = {hel
           log.help += `已助力 ${code} ${shareCodeSelf.includes(code) ? '*内部*' : ''}\n`
         } else if (res.helpResult.code === '10') {
           console.log('已满')
+          full.push(code)
         } else if (res.helpResult.remainTimes === 0) {
           console.log('上限')
           await wait(10000)
@@ -107,7 +113,7 @@ let shareCodeSelf: string[] = [], log: { help: string, runTimes: string } = {hel
       UserName = decodeURIComponent(cookie.match(/pt_pin=([^;]*)/)![1])
       console.log(`\n开始【京东账号${index + 1}】${UserName}\n`)
 
-      h5stTool = new H5ST("0c010", USER_AGENT, "8389547038003203")
+      h5stTool = new H5ST("0c010", USER_AGENT, process.env.FP_0C010 || "")
       await h5stTool.__genAlgo()
 
       res = await api('farmAssistInit', {"version": 16, "channel": 1, "babelChannel": "121"})
