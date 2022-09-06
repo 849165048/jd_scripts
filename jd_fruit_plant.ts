@@ -1,6 +1,9 @@
 /**
- * 农场自动收+种4级
- */
+农场自动收+种4级
+30 0 * * * * jd_fruit_plant.ts
+new Env('农场自动收+种');
+
+**/
 
 import USER_AGENT, {o2s, requireConfig, wait} from "./function/TS_USER_AGENTS"
 import axios from "axios";
