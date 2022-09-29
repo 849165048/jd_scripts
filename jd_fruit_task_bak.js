@@ -44,7 +44,7 @@ let message = '',
     option = {},
     isFruitFinished = false;
 const retainWater = $.isNode() ? (process.env.retainWater ? process.env.retainWater : 100) : ($.getdata('retainWater') ? $.getdata('retainWater') : 100); //保留水滴大于多少g,默认100g;
-let jdNotify = false; //是否关闭通知，false打开通知推送，true关闭通知推送
+let jdNotify = true; //是否关闭通知，false打开通知推送，true关闭通知推送
 let jdFruitBeanCard = false; //农场使用水滴换豆卡(如果出现限时活动时100g水换20豆,此时比浇水划算,推荐换豆),true表示换豆(不浇水),false表示不换豆(继续浇水),脚本默认是浇水
 let randomCount = $.isNode() ? 20 : 5;
 const JD_API_HOST = 'https://api.m.jd.com/client.action';
@@ -132,7 +132,7 @@ async function jdFruit() {
             await getTenWaterAward(); //领取10浇水奖励
             await getWaterFriendGotAward(); //领取为2好友浇水奖励
             await duck();
-            if (!process.env.DO_TEN_WATER_AGAIN) {
+            if (!process.env.DO_TEN_WATER_AGAIN2) {
                 console.log('执行再次浇水')
                 await doTenWaterAgain(); //再次浇水
             } else {
