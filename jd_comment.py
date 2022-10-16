@@ -23,14 +23,7 @@ except ImportError:
     os.system('apk add --no-cache gcc python3-dev libc-dev libssl-dev build-essential libffi-dev libsas12-dev')
     os.system('pip3 install pycryptodome requests')
 
-systype = "x86"
-sysver = platform.uname()
-if "aarch64" in sysver:
-    from MR_util.Comment_util import run
-elif "Windows" in sysver:
-    from jd_comment_util import run
-else:
-    from MR_util.Comment_util import run
+from MR_util.Comment_util import run
 
 
 if "LOG_DEBUG" in os.environ:  # 判断调试模式变量
