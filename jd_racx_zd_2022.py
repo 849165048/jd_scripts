@@ -10,6 +10,7 @@ RABBIT_HELP_PIN：设置车头pin
 ZD_ReverseCk：0：正序，1：反序，2：乱序
 
 log剩余次数大于6500方可使用
+更新专用2
 '''
 
 try:
