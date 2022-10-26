@@ -133,7 +133,7 @@ async function jdFruit() {
             await getTenWaterAward(); //领取10浇水奖励
             await getWaterFriendGotAward(); //领取为2好友浇水奖励
             await duck();
-            if (!process.env.DO_TEN_WATER_AGAIN2) {
+            if (!process.env.DO_TEN_WATER_AGAIN) {
                 console.log('执行再次浇水')
                 await doTenWaterAgain(); //再次浇水
             } else {
