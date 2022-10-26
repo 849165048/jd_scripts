@@ -1349,7 +1349,7 @@ function requireConfig() {
       })
       if (process.env.JD_DEBUG && process.env.JD_DEBUG === 'false') console.log = () => {
       };
-      isWaterGoodForFarm = process.env.IS_WATER_GOOD_FOR_FARM2 === 'true';
+      isWaterGoodForFarm = process.env.IS_WATER_GOOD_FOR_FARM === 'true';
     } else {
       cookiesArr = [$.getdata('CookieJD'), $.getdata('CookieJD2'), ...jsonParse($.getdata('CookiesJD') || "[]").map(item => item.cookie)].filter(item => !!item);
     }
