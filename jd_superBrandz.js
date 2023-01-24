@@ -58,7 +58,7 @@ if ($.isNode()) {
 //获取活动信息
 function getid(functionid, source) {
     return new Promise(async (resolve) => {
-        const options = taskPostUrl(functionid, `{"source":"${source}","activityId":1012333}`)
+        const options = taskPostUrl(functionid, `{"source":"${source}","activityId":1012465}`)
         //  console.log(options)
         $.post(options, async (err, resp, data) => {
             try {
@@ -71,8 +71,8 @@ function getid(functionid, source) {
                     if (data.data && data.code === "0" && data.data.result) {
                         $.result = data.data.result.taskList || []
                         for(const z of $.result){
-													$.actid = '1012333'
-													$.pid = '2aZfauURe2aNSkpWhRgJYi2SgSJc'
+													$.actid = '1012465'
+													$.pid = 'JFMx7ke6h6KejTzCXQTfpNi8v1L'
 													$.source = 'hall_1111'
 													$.assignmentName = z.assignmentName
 													$.assignmentType = z.assignmentType
@@ -95,9 +95,9 @@ function getid(functionid, source) {
     });
 }		
 
-function doTask1() {
+function doTask() {
     return new Promise(async (resolve) => {
-        let body = `{"source":"${$.source}","activityId":"1012353","encryptProjectId":"mCqqcvGW1LKeAWqJtc6NwHGXK2u","completionFlag":1,"encryptAssignmentId":"H8VttZkAwM83dpETucHznqaNGAc","assignmentType":${$.assignmentType},"actionType":0}`
+        let body = `{"source":"${$.source}","activityId":${$.actid},"encryptProjectId":"${$.pid}","completionFlag":1,"encryptAssignmentId":"${$.encryptAssignmentId}","assignmentType":${$.assignmentType},"actionType":0}`
         const options = taskPostUrl(`superBrandDoTask`, body)
         $.post(options, async (err, resp, data) => {
             try {
@@ -142,11 +142,17 @@ function doTask1() {
         });
     });
 }
-function doTask() {
+function doTask1() {
+    let opt = {
+        url: `https://api.m.jd.com/api?functionId=superBrandDoTask&appid=ProductZ4Brand&client=wh5&t=1673920844810&body=%7B%22source%22%3A%22hall_1111%22%2C%22activityId%22%3A1012471%2C%22completionFlag%22%3A1%2C%22encryptProjectId%22%3A%223MhsbG1ZeDpqjoEaU2SEw38gdavD%22%2C%22encryptAssignmentId%22%3A%22379wQ992MFewWwiKrkfrNfmtbVwH%22%2C%22assignmentType%22%3A0%2C%22actionType%22%3A0%7D`,
+        headers: {
+            'Origin': 'https://prodev.m.jd.com',
+            'User-Agent': `jdapp;android;9.4.4;10;${$.UUID};network/wifi;ADID/${$.ADID};model/M2006J10C;aid/3b78ecc3f490c7ba;oaid/7d5870c5a1696881;osVer/29;appBuild/85576;psn/3b78ecc3f490c7ba|541;psq/2;uid/3b78ecc3f490c7ba;adk/;ads/;pap/JA2015_311210|9.2.4|ANDROID 10;osv/10;pv/548.2;jdv/0|iosapp|t_335139774|appshare|CopyURL|1606277982178|1606277986;ref/com.jd.lib.personal.view.fragment.JDPersonalFragment;partner/xiaomi001;apprpd/MyJD_Main;Mozilla/5.0 (Linux; Android 10; M2006J10C Build/QP1A.190711.020; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/77.0.3865.120 MQQBrowser/6.2 TBS/045227 Mobile Safari/537.36`,
+            'Cookie': cookie
+        }
+    }
     return new Promise(async (resolve) => {
-        let body = `{"source":"${$.source}","activityId":${$.actid},"encryptProjectId":"${$.pid}","completionFlag":1,"encryptAssignmentId":"${$.encryptAssignmentId}","assignmentType":${$.assignmentType},"actionType":0}`
-        const options = taskPostUrl(`superBrandDoTask`, body)
-        $.post(options, async (err, resp, data) => {
+        $.post(opt, async (err, resp, data) => {
             try {
                 if (err) {
                     console.log(`${JSON.stringify(err)}`);
