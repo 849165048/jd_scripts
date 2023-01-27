@@ -40,6 +40,7 @@ if ($.isNode()) {
                 continue
             }
             await xxx1();
+			if ($.ban) {console.log('风控，跳出');continue};
             await $.wait(500);
             await xxx2();
 			await $.wait(500);
@@ -84,7 +85,7 @@ async function xxx1() {
                     data = JSON.parse(data)
                     if (data.code == 0) {
                         if (data.data.bizCode == 0) {
-                            if (data.data?.result?.rewards) {
+                            if (data.data?.result?.rewards.length != 0) {
                                 if (data.data?.result?.rewards[0].awardType === 3) {
                                     console.log(` 恭喜获得 ${data.data?.result?.rewards[0].beanNum} 京豆`);
                                 } else {
@@ -93,6 +94,9 @@ async function xxx1() {
                             } else {
                                 console.log(JSON.stringify(data.data?.result));
                             }
+                        } else if (data.data.bizMsg.indexOf('风控')>-1) {
+                            console.log(data.data.bizMsg);
+							$.ban=true;
                         } else {
                             console.log(data.data.bizMsg);
                         }
@@ -127,7 +131,7 @@ async function xxx2() {
                     data = JSON.parse(data)
                     if (data.code == 0) {
                         if (data.data.bizCode == 0) {
-                            if (data.data?.result?.rewards) {
+                            if (data.data?.result?.rewards.length != 0) {
                                 if (data.data?.result?.rewards[0].awardType === 3) {
                                     console.log(` 恭喜获得 ${data.data?.result?.rewards[0].beanNum} 京豆`);
                                 } else {
@@ -171,7 +175,7 @@ async function xxx4() {
                     data = JSON.parse(data)
                     if (data.code == 0) {
                         if (data.data.bizCode == 0) {
-                            if (data.data?.result?.rewards) {
+                            if (data.data?.result?.rewards.length != 0) {
                                 if (data.data?.result?.rewards[0].awardType === 3) {
                                     console.log(` 恭喜获得 ${data.data?.result?.rewards[0].beanNum} 京豆`);
                                 } else {
@@ -215,7 +219,7 @@ async function xxx3() {
                     data = JSON.parse(data)
                     if (data.code == 0) {
                         if (data.data.bizCode == 0) {
-                            if (data.data?.result?.rewards) {
+                            if (data.data?.result?.rewards.length != 0) {
                                 if (data.data?.result?.rewards[0].awardType === 3) {
                                     console.log(` 恭喜获得 ${data.data?.result?.rewards[0].beanNum} 京豆`);
                                 } else {
