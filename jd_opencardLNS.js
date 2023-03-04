@@ -6,11 +6,11 @@
 第一个账号助力作者 其他依次助力CK1
 注意：第一个CK黑号会全部助力所填写的助力码
 
-cron:59 10 3-10/3 3
+cron:1 1 1 1 *
 ============Quantumultx===============
 [task_local]
 #3.3-3.10 女神价到
-59 10 3-10/3 3 jd_opencardLNS.js, tag=3.3-3.10 女神价到, enabled=true
+1 1 1 1 * jd_opencardLNS.js, tag=3.3-3.10 女神价到, enabled=true
 */
 let opencard_toShop = "false"
 const $ = new Env("3.3-3.10 女神价到");
