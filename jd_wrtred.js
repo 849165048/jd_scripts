@@ -1,5 +1,5 @@
 /*
-22 4 * * * https://raw.githubusercontent.com/6dylan6/jdpro/main/jd_wrtred.js 
+29 3 * * * https://raw.githubusercontent.com/6dylan6/jdpro/main/jd_wrtred.js 
 updatetime:2022/11/23
  */
 

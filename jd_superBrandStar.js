@@ -1,16 +1,14 @@
-/**
-特务之明星送好礼
-一次性脚本。请禁用！
-cron 36 2,19 * * * jd_superBrandStar.js
- */
-const $ = new Env('特务之明星送好礼');
+/*
+明星送好礼
+cron:0 35 18,23 13 9 *
+*/
+const $ = new Env('明星送好礼');
 const notify = $.isNode() ? require('./sendNotify') : '';
 const jdCookieNode = $.isNode() ? require('./jdCookie.js') : '';
 let cookiesArr = [];
 let UA = ``;
 $.allInvite = [];
 let useInfo = {};
-$.flag = false
 if ($.isNode()) {
     Object.keys(jdCookieNode).forEach((item) => { cookiesArr.push(jdCookieNode[item]) });
     if (process.env.JD_DEBUG && process.env.JD_DEBUG === 'false') console.log = () => { };
@@ -23,14 +21,13 @@ if ($.isNode()) {
         return;
     }
     for (let i = 0; i < cookiesArr.length; i++) {
-
         UA = `jdapp;iPhone;10.0.8;14.6;${randomWord(false, 40, 40)};network/wifi;JDEbook/openapp.jdreader;model/iPhone9,2;addressid/2214222493;appBuild/168841;jdSupportDarkMode/0;Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/16E158;supportJDSHWK/1`;
         $.index = i + 1;
         $.cookie = cookiesArr[i];
         $.isLogin = true;
         $.nickName = '';
         $.UserName = decodeURIComponent($.cookie.match(/pt_pin=([^; ]+)(?=;?)/) && $.cookie.match(/pt_pin=([^; ]+)(?=;?)/)[1]);
-        //await TotalBean();
+        await TotalBean();
         console.log(`\n*****开始【京东账号${$.index}】${$.nickName || $.UserName}*****\n`);
         if (!$.isLogin) {
             $.msg($.name, `【提示】cookie已失效`, `京东账号${$.index} ${$.nickName || $.UserName}\n请重新登录获取\nhttps://bean.m.jd.com/bean/signIndex.action`, { "open-url": "https://bean.m.jd.com/bean/signIndex.action" });
@@ -40,12 +37,7 @@ if ($.isNode()) {
             }
             continue
         }
-        try {
-            await main();
-        }catch (e) {
-            console.log(`好像账号黑号~~~`);
-        }
-        if ($.flag) return;
+        await main();
     }
 
 })().catch((e) => { $.log('', `❌ ${$.name}, 失败! 原因: ${e}!`, '') }).finally(() => { $.done(); })
@@ -54,16 +46,11 @@ async function main() {
     $.runFlag = false;
     $.activityInfo = {};
     await takeRequest('showStarGiftInfo');
-    if($.bizCode == 'MP001'){
-        console.log(`本期活动结束，等待下期。。。`);
-        $.flag = true
-        return;
-    }
     if (JSON.stringify($.activityInfo) === '{}') {
-        console.log(`获取活动详情失败`);
+        console.log(`❌获取活动详情失败`);
         return;
     }
-    console.log(`获取活动详情成功`);
+    console.log(`✅获取活动详情成功`);
     $.activityId = $.activityInfo.activityBaseInfo.activityId;
     $.activityName = $.activityInfo.activityBaseInfo.activityName;
     console.log(`当前活动:${$.activityName},ID：${$.activityId}`);
@@ -74,7 +61,6 @@ async function main() {
     await $.wait(1000);
     await doTask();
     await $.wait(500)
-	console.log('开始抽奖：')
     await await takeRequest('superBrandTaskLottery')
 
 }
@@ -121,10 +107,20 @@ async function doTask() {
                 }
             }
 
-        } else if($.oneTask.assignmentType === 7) {
+        }
+        else if ($.oneTask.assignmentType === 7) {
             let subInfo = $.oneTask.ext.brandMemberList || '';
-            console.log(`任务：${$.oneTask.assignmentName},不入会尝试领取`);
-            await takeRequest('superBrandDoTask', { "source": "star_gift", "activityId": $.activityId, "encryptProjectId": $.encryptProjectId, "encryptAssignmentId": $.oneTask.encryptAssignmentId, "assignmentType": $.oneTask.assignmentType, "itemId": subInfo[0].itemId, "actionType": 0 });
+            if (subInfo && subInfo[0]) {
+                for (let j = 0; j < subInfo.length; j++) {
+                    $.runInfo = subInfo[j];
+                    if ($.runInfo.status !== 1) {
+                        continue;
+                    }
+                    console.log(`任务：${$.runInfo.shopName || $.runInfo.itemId},去执行`);
+                    await takeRequest('superBrandDoTask', { "source": "star_gift", "activityId": $.activityId, "encryptProjectId": $.encryptProjectId, "encryptAssignmentId": $.oneTask.encryptAssignmentId, "assignmentType": $.oneTask.assignmentType, "itemId": $.runInfo.itemId, "actionType": 0 });
+                    await $.wait(200);
+                }
+            }
         }
     }
 }
@@ -173,7 +169,6 @@ function dealReturn(type, data) {
     }
     switch (type) {
         case 'showStarGiftInfo':
-            $.bizCode = data.data.bizCode;
             if (data.code === '0' && data.data && data.data.result) {
                 $.activityInfo = data.data.result;
             }
@@ -193,21 +188,21 @@ function dealReturn(type, data) {
         case 'superBrandTaskLottery':
             if (data.code === '0' && data.data.bizCode !== 'TK000') {
                 $.runFlag = false;
-                console.log(`抽奖次数已用完`);
+                console.log(data.data.bizMsg);
             } else if (data.code === '0' && data.data.bizCode == 'TK000') {
-                if (data.data?.result?.rewardComponent?.beanList) {
-                    console.log(`获得豆子：${data.data.result.rewardComponent.beanList[0].quantity}`);
-                } else{
-                    console.log(data.data?.result);
+                if (data.data && data.data.result && data.data.result.rewardComponent && data.data.result.rewardComponent.beanList) {
+                    if (data.data.result.rewardComponent.beanList.length > 0) {
+                        console.log(`🎉获得豆子：${data.data.result.rewardComponent.beanList[0].quantity}`)
+                    }
                 }
             } else {
                 $.runFlag = false;
                 console.log(`抽奖失败`);
             }
-            //console.log(JSON.stringify(data));
+            // console.log(JSON.stringify(data));
             break;
         default:
-            console.log(JSON.stringify(data));
+            // console.log(JSON.stringify(data));
     }
 }
 
@@ -217,7 +212,7 @@ function getRequest(url) {
         'Cookie': $.cookie,
         'Connection': `keep-alive`,
         'Accept': `application/json, text/plain, */*`,
-        'Referer': `https://prodev.m.jd.com/mall/active/31GFSKyRbD3ehsHih2rQKArxfb8c/index.html`,
+        'Referer': `https://prodev.m.jd.com/mall/active/3XbzM8XrNaiKRVuD9jHZhj9vYG8d/index.html`,
         'Host': `api.m.jd.com`,
         'User-Agent': UA,
         'Accept-Language': `zh-cn`,

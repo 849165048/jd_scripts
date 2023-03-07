@@ -6,6 +6,8 @@
 活动入口：京东APP-游戏与互动-查看更多-京喜工厂
 或者: 京东APP首页搜索 "玩一玩" ,造物工厂即可
 
+// zero205：已添加自己账号内部互助，有剩余助力次数再帮我助力
+
 已支持IOS双京东账号,Node.js支持N个京东账号
 脚本兼容: QuantumultX, Surge, Loon, JSBox, Node.js
 ============Quantumultx===============
@@ -41,9 +43,16 @@ let notifyLevel = $.isNode() ? process.env.JXGC_NOTIFY_LEVEL || 2 : 2;
 const randomCount = $.isNode() ? 20 : 5;
 let tuanActiveId = ``, hasSend = false;
 const jxOpenUrl = `openjd://virtual?params=%7B%20%22category%22:%20%22jump%22,%20%22des%22:%20%22m%22,%20%22url%22:%20%22https://wqsd.jd.com/pingou/dream_factory/index.html%22%20%7D`;
-let cookiesArr = [], cookie = '', message = '', allMessage = '', jdDreamFactoryShareArr = [];
-const newShareCodes = [];
+let cookiesArr = [], cookie = '', message = '', allMessage = '', jdDreamFactoryShareArr = [], newShareCodes;
+const inviteCodes = [
+  'V5LkjP4WRyjeCKR9VRwcRX0bBuTz7MEK0-E99EJ7u0k=@0WtCMPNq7jekehT6d3AbFw==@6lw84c1ARwpoRyOtfnF77g==@J1t777njetfQcyEg57lzQA==@W9u_eBl3YKbSjXu0QP3HGQ=@VV55A_oKz5u5CYrL3jxPdg==@9TCPf6sW9_v3B9f3KUoa7Q==',
+  "gB99tYLjvPcEFloDgamoBw==@7dluIKQMp0bySgcr8AqFgw==@6lw84c1ARwpoRyOtfnF77g==@J1t777njetfQcyEg57lzQA==@W9u_eBl3YKbSjXu0QP3HGQ=@VV55A_oKz5u5CYrL3jxPdg==@9TCPf6sW9_v3B9f3KUoa7Q==",
+  '-OvElMzqeyeGBWazWYjI1Q==@6lw84c1ARwpoRyOtfnF77g==@J1t777njetfQcyEg57lzQA==@W9u_eBl3YKbSjXu0QP3HGQ=@VV55A_oKz5u5CYrL3jxPdg==@9TCPf6sW9_v3B9f3KUoa7Q==',
+  'GFwo6PntxDHH95ZRzZ5uAg==@6lw84c1ARwpoRyOtfnF77g==@J1t777njetfQcyEg57lzQA==@W9u_eBl3YKbSjXu0QP3HGQ=@VV55A_oKz5u5CYrL3jxPdg==@9TCPf6sW9_v3B9f3KUoa7Q=='
+];
 const jdCookieNode = $.isNode() ? require('./jdCookie.js') : '';
+const ZLC = !(process.env.JD_JOIN_ZLC && process.env.JD_JOIN_ZLC === 'false')
+const JD_ZLC_URL=process.env.JD_ZLC_URL?process.env.JD_ZLC_URL:"http://zlc1.chaoyi996.com:8880";
 $.tuanIds = [];
 $.appId = 10001;
 $.newShareCode = [];
@@ -57,7 +66,11 @@ if ($.isNode()) {
   cookiesArr = [$.getdata('CookieJD'), $.getdata('CookieJD2'), ...jsonParse($.getdata('CookiesJD') || "[]").map(item => item.cookie)].filter(item => !!item);
 }
 !(async () => {
+  if (!process.env.JD_JOIN_ZLC) {
+    console.log(`【注意】本脚本默认会给助力池进行助力！\n如需加入助力池请添加TG群：https://t.me/jd_zero_205\n如不加入助力池互助，可添加变量名称：JD_JOIN_ZLC，变量值：false\n`)
+  }
   $.CryptoJS = $.isNode() ? require('crypto-js') : CryptoJS;
+  await requireConfig();
   if (!cookiesArr[0]) {
     $.msg($.name, '【提示】请先获取京东账号一cookie\n直接使用NobyDa的京东签到获取', 'https://bean.m.jd.com/bean/signIndex.action', { "open-url": "https://bean.m.jd.com/bean/signIndex.action" });
     return;
@@ -76,7 +89,9 @@ if ($.isNode()) {
       $.pickEle = 0;
       $.pickFriendEle = 0;
       $.friendList = [];
-      //await TotalBean();
+      $.canHelpFlag = true;//能否助力朋友(招工)
+      $.tuanNum = 0;//成团人数
+      await TotalBean();
       console.log(`\n******开始【京东账号${$.index}】${$.nickName || $.UserName}*********\n`);
       if (!$.isLogin) {
         $.msg($.name, `【提示】cookie已失效`, `京东账号${$.index} ${$.nickName || $.UserName}\n请重新登录获取\nhttps://bean.m.jd.com/bean/signIndex.action`, { "open-url": "https://bean.m.jd.com/bean/signIndex.action" });
@@ -87,7 +102,35 @@ if ($.isNode()) {
         continue
       }
       await jdDreamFactory()
-	  await $.wait(10000);
+    }
+  }
+  for (let j = 0; j < cookiesArr.length; j++) {
+    if (cookiesArr[j]) {
+      cookie = cookiesArr[j];
+      $.UserName = decodeURIComponent(cookie.match(/pt_pin=([^; ]+)(?=;?)/) && cookie.match(/pt_pin=([^; ]+)(?=;?)/)[1])
+      $.index = j + 1;
+      await helpFriends();
+    }
+  }
+  if (tuanActiveId) {
+    for (let i = 0; i < cookiesArr.length; i++) {
+      if (cookiesArr[i]) {
+        cookie = cookiesArr[i];
+        $.isLogin = true;
+        $.canHelp = true;//能否参团
+        $.UserName = decodeURIComponent(cookie.match(/pt_pin=([^; ]+)(?=;?)/) && cookie.match(/pt_pin=([^; ]+)(?=;?)/)[1])
+
+        if ((cookiesArr && cookiesArr.length >= ($.tuanNum || 5)) && $.canHelp) {
+          console.log(`\n账号${$.UserName} 内部相互进团\n`);
+          for (let item of $.tuanIds) {
+            console.log(`\n${$.UserName} 去参加团 ${item}`);
+            if (!$.canHelp) break;
+            await JoinTuan(item);
+            await $.wait(1000);
+          }
+        }
+        if ($.canHelp) await joinLeaderTuan();//参团
+      }
     }
   }
   if ($.isNode() && allMessage) {
@@ -105,6 +148,7 @@ async function jdDreamFactory() {
   try {
     await userInfo();
     await QueryFriendList();//查询今日招工情况以及剩余助力次数
+    // await joinLeaderTuan();//参团
     if (!$.unActive) return
     // await collectElectricity()
     await getUserElectricity();
@@ -113,6 +157,10 @@ async function jdDreamFactory() {
     await QueryHireReward();//收取招工电力
 //     await PickUp();//收取自家的地下零件
 //     await stealFriend();
+    if (tuanActiveId) {
+      await tuanActivity();
+      await QueryAllTuan();
+    }
     await exchangeProNotify();
     await showMsg();
   } catch (e) {
@@ -310,47 +358,44 @@ function taskList() {
 
 // 获得用户电力情况
 function getUserElectricity() {
-    return new Promise(async resolve => {
-        // const url = `/dreamfactory/generator/QueryCurrentElectricityQuantity?zone=dream_factory&factoryid=${$.factoryId}&sceneval=2&g_login_type=1`
-        $.get(taskurl(`generator/QueryCurrentElectricityQuantity`, `factoryid=${$.factoryId}`, `_time,factoryid,zone`), async (err, resp, data) => {
-            try {
-                if (err) {
-                    console.log(`${JSON.stringify(err)}`)
-                    console.log(`${$.name} API请求失败，请检查网路重试`)
+  return new Promise(async resolve => {
+    // const url = `/dreamfactory/generator/QueryCurrentElectricityQuantity?zone=dream_factory&factoryid=${$.factoryId}&sceneval=2&g_login_type=1`
+    $.get(taskurl(`generator/QueryCurrentElectricityQuantity`, `factoryid=${$.factoryId}`, `_time,factoryid,zone`), async (err, resp, data) => {
+      try {
+        if (err) {
+          console.log(`${JSON.stringify(err)}`)
+          console.log(`${$.name} API请求失败，请检查网路重试`)
+        } else {
+          if (safeGet(data)) {
+            data = JSON.parse(data);
+            if (data['ret'] === 0) {
+              console.log(`发电机：当前 ${data.data.currentElectricityQuantity} 电力，最大值 ${data.data.maxElectricityQuantity} 电力`)
+              if (data.data.currentElectricityQuantity < data.data.maxElectricityQuantity) {
+                $.log(`\n本次发电机电力集满分享后${data.data.nextCollectDoubleFlag === 1 ? '可' : '不可'}获得双倍电力，${data.data.nextCollectDoubleFlag === 1 ? '故目前不收取电力' : '故现在收取电力'}\n`)
+              }
+              if (data.data.nextCollectDoubleFlag === 1) {
+                if (data.data.currentElectricityQuantity === data.data.maxElectricityQuantity && data.data.doubleElectricityFlag) {
+                  console.log(`发电机：电力可翻倍并收获`)
+                  // await shareReport();
+                  await collectElectricity()
                 } else {
-                    if (safeGet(data)) {
-                        data = JSON.parse(data);
-                        if (data['ret'] === 0 && data.data) {
-                            console.log(`发电机：当前 ${data.data.currentElectricityQuantity} 电力，最大值 ${data.data.maxElectricityQuantity} 电力`)
-                            if (data.data.currentElectricityQuantity < data.data.maxElectricityQuantity) {
-                                $.log(`\n本次发电机电力集满分享后${data.data.nextCollectDoubleFlag === 1 ? '可' : '不可'}获得双倍电力，${data.data.nextCollectDoubleFlag === 1 ? '故目前不收取电力' : '故现在收取电力'}\n`)
-                            }
-                            if (data.data.nextCollectDoubleFlag === 1) {
-                                if (data.data.currentElectricityQuantity === data.data.maxElectricityQuantity && data.data.doubleElectricityFlag) {
-                                    console.log(`发电机：电力可翻倍并收获`)
-                                    // await shareReport();
-                                    await collectElectricity()
-                                } else {
-                                    message += `【发电机电力】当前 ${data.data.currentElectricityQuantity} 电力，未达到收获标准\n`
-                                }
-                            } else {
-                                //再收取双倍电力达到上限时，直接收取，不再等到满级
-                                await collectElectricity()
-                            }
-                        }else {
-                            console.log(`QueryCurrentElectricityQuantity异常:${JSON.stringify(data)}`);
-                        }
-                    }
+                  message += `【发电机电力】当前 ${data.data.currentElectricityQuantity} 电力，未达到收获标准\n`
                 }
-            } catch (e) {
-                $.logErr(e, resp)
-            } finally {
-                resolve();
+              } else {
+                //再收取双倍电力达到上限时，直接收取，不再等到满级
+                await collectElectricity()
+              }
             }
-        })
+          }
+        }
+      } catch (e) {
+        $.logErr(e, resp)
+      } finally {
+        resolve();
+      }
     })
+  })
 }
-
 
 //查询有多少的招工电力可收取
 function QueryHireReward() {
@@ -412,6 +457,83 @@ function hireAward(date, type = 0) {
     })
   })
 }
+async function helpFriends() {
+  let Hours = new Date(new Date().getTime() + new Date().getTimezoneOffset() * 60 * 1000 + 8 * 60 * 60 * 1000).getHours();
+  if (Hours < 6) {
+    console.log(`\n未到招工时间(每日6-24点之间可招工)\n`)
+    return
+  }
+  if ($.canHelpFlag) {
+    await shareCodesFormat();
+    if ($.isNode() && !process.env.DREAM_FACTORY_SHARE_CODES) {
+      console.log(`您未填写助力码变量，开始账号内互助，再帮【zero205】助力`);
+      $.newShareCode = [...(jdDreamFactoryShareArr || []), ...(newShareCodes || [])]
+    } else {
+      $.newShareCode = newShareCodes
+    }
+    for (let code of $.newShareCode) {
+      if (code) {
+        if ($.encryptPin === code) {
+          console.log(`不能为自己助力,跳过`);
+          continue;
+        }
+        const assistFriendRes = await assistFriend(code);
+        if (assistFriendRes && assistFriendRes['ret'] === 0) {
+          console.log(`助力朋友：${code}成功，因一次只能助力一个，故跳出助力`)
+          break
+        } else if (assistFriendRes && assistFriendRes['ret'] === 11009) {
+          console.log(`助力朋友[${code}]失败：${assistFriendRes.msg}，跳出助力`);
+          break
+        } else {
+          console.log(`助力朋友[${code}]失败：${assistFriendRes.msg}`)
+        }
+      }
+    }
+  } else {
+    $.log(`\n今日助力好友机会已耗尽\n`);
+  }
+}
+// 帮助用户,此处UA不可更换,否则助力功能会失效
+function assistFriend(sharepin) {
+  return new Promise(async resolve => {
+    // const url = `/dreamfactory/friend/AssistFriend?zone=dream_factory&sharepin=${escape(sharepin)}&sceneval=2&g_login_type=1`
+    // const options = {
+    //   'url': `https://m.jingxi.com/dreamfactory/friend/AssistFriend?zone=dream_factory&sharepin=${escape(sharepin)}&sceneval=2&g_login_type=1`,
+    //   'headers': {
+    //     "Accept": "*/*",
+    //     "Accept-Encoding": "gzip, deflate, br",
+    //     "Accept-Language": "zh-cn",
+    //     "Connection": "keep-alive",
+    //     "Cookie": cookie,
+    //     "Host": "m.jingxi.com",
+    //     "Referer": "https://st.jingxi.com/pingou/dream_factory/index.html",
+    //     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.66 Safari/537.36"
+    //   }
+    // }
+    const options = taskurl('friend/AssistFriend', `sharepin=${escape(sharepin)}`, `_time,sharepin,zone`);
+    $.get(options, (err, resp, data) => {
+      try {
+        if (err) {
+          console.log(`${JSON.stringify(err)}`)
+          console.log(`${$.name} API请求失败，请检查网路重试`)
+        } else {
+          if (safeGet(data)) {
+            data = JSON.parse(data);
+            // if (data['ret'] === 0) {
+            //   console.log(`助力朋友：${sharepin}成功`)
+            // } else {
+            //   console.log(`助力朋友[${sharepin}]失败：${data.msg}`)
+            // }
+          }
+        }
+      } catch (e) {
+        $.logErr(e, resp)
+      } finally {
+        resolve(data);
+      }
+    })
+  })
+}
 //查询助力招工情况
 function QueryFriendList() {
   return new Promise(async resolve => {
@@ -423,7 +545,7 @@ function QueryFriendList() {
         } else {
           if (safeGet(data)) {
             data = JSON.parse(data);
-            if (data['ret'] === 0 && data.data) {
+            if (data['ret'] === 0) {
               data = data['data'];
               const { assistListToday = [], assistNumMax, hireListToday = [], hireNumMax } = data;
               console.log(`\n\n你今日还能帮好友打工（${assistNumMax - assistListToday.length || 0}/${assistNumMax}）次\n\n`);
@@ -538,6 +660,7 @@ function userInfo() {
                 $.productionId = production.productionId;//商品ID
                 $.commodityDimId = production.commodityDimId;
                 $.encryptPin = data.user.encryptPin;
+
                 // subTitle = data.user.pin;
                 await GetCommodityDetails();//获取已选购的商品信息
                 if (productionStage['productionStageAwardStatus'] === 1) {
@@ -557,7 +680,6 @@ function userInfo() {
                 message += `【生产商品】${$.productName}\n`;
                 message += `【当前等级】${data.user.userIdentity} ${data.user.currentLevel}\n`;
                 message += `【生产进度】${((production.investedElectric / production.needElectric) * 100).toFixed(2)}%\n`;
-
                 if (production.investedElectric >= production.needElectric) {
                   if (production['exchangeStatus'] === 1) $.log(`\n\n可以兑换商品了`)
                   if (production['exchangeStatus'] === 3) {
@@ -605,6 +727,7 @@ function userInfo() {
     })
   })
 }
+
 //查询当前生产的商品名称
 function GetCommodityDetails() {
   return new Promise(async resolve => {
@@ -882,6 +1005,281 @@ function getFactoryIdByPin(pin) {
     })
   })
 }
+async function tuanActivity() {
+  const tuanConfig = await QueryActiveConfig();
+  if (tuanConfig && tuanConfig.ret === 0) {
+    const { activeId, surplusOpenTuanNum, tuanId } = tuanConfig['data']['userTuanInfo'];
+    console.log(`今日剩余开团次数：${surplusOpenTuanNum}次`);
+    $.surplusOpenTuanNum = surplusOpenTuanNum;
+    if (!tuanId && surplusOpenTuanNum > 0) {
+      //开团
+      $.log(`准备开团`)
+      await CreateTuan();
+    } else if (tuanId) {
+      //查询词团信息
+      const QueryTuanRes = await QueryTuan(activeId, tuanId);
+      if (QueryTuanRes && QueryTuanRes.ret === 0) {
+        const { tuanInfo } = QueryTuanRes.data;
+        if ((tuanInfo && tuanInfo[0]['endTime']) <= QueryTuanRes['nowTime'] && surplusOpenTuanNum > 0) {
+          $.log(`之前的团已过期，准备重新开团\n`)
+          await CreateTuan();
+          return
+        }
+        for (let item of tuanInfo) {
+          const { realTuanNum, tuanNum, userInfo } = item;
+          $.tuanNum = tuanNum || 0;
+          $.log(`\n开团情况:${realTuanNum}/${tuanNum}\n`);
+          if (realTuanNum === tuanNum) {
+            for (let user of userInfo) {
+              if (user.encryptPin === $.encryptPin) {
+                if (user.receiveElectric && user.receiveElectric > 0) {
+                  console.log(`您在${new Date(user.joinTime * 1000).toLocaleString()}开团奖励已经领取成功\n`)
+                  if ($.surplusOpenTuanNum > 0) await CreateTuan();
+                } else {
+                  $.log(`开始领取开团奖励`);
+                  await tuanAward(item.tuanActiveId, item.tuanId);//isTuanLeader
+                }
+              }
+            }
+          } else {
+            $.tuanIds.push(tuanId);
+            $.log(`\n此团未达领取团奖励人数：${tuanNum}人\n`)
+          }
+        }
+      }
+    }
+  }
+}
+async function joinLeaderTuan() {
+  let res = await updateTuanIdsCDN('https://raw.githubusercontent.com/zero205/updateTeam/main/shareCodes/jd_updateFactoryTuanId.json')
+  if (!res) res = await updateTuanIdsCDN('https://raw.fastgit.org/zero205/updateTeam/main/shareCodes/jd_updateFactoryTuanId.json')
+  $.authorTuanIds = [...(res && res.tuanIds || [])]
+  if ($.authorTuanIds && $.authorTuanIds.length) {
+    for (let tuanId of $.authorTuanIds) {
+      if (!tuanId) continue
+      if (!$.canHelp) break;
+      console.log(`\n账号${$.UserName} 参加zero205的团 【${tuanId}】`);
+      await JoinTuan(tuanId);
+      await $.wait(1000);
+    }
+  }
+}
+//可获取开团后的团ID，如果团ID为空并且surplusOpenTuanNum>0，则可继续开团
+//如果团ID不为空，则查询QueryTuan()
+function QueryActiveConfig() {
+  return new Promise((resolve) => {
+    const body = `activeId=${escape(tuanActiveId)}&tuanId=`;
+    const options = taskTuanUrl(`QueryActiveConfig`, body, `_time,activeId,tuanId`)
+    $.get(options, async (err, resp, data) => {
+      try {
+        if (err) {
+          console.log(`${JSON.stringify(err)}`)
+          console.log(`${$.name} API请求失败，请检查网路重试`);
+        } else {
+          if (safeGet(data)) {
+            data = JSON.parse(data);
+            if (data['ret'] === 0) {
+              const { userTuanInfo } = data['data'];
+              console.log(`\n团活动ID  ${userTuanInfo.activeId}`);
+              console.log(`团ID  ${userTuanInfo.tuanId}\n`);
+            } else {
+              console.log(`QueryActiveConfig异常：${JSON.stringify(data)}`);
+            }
+          }
+        }
+      } catch (e) {
+        $.logErr(e, resp)
+      } finally {
+        resolve(data);
+      }
+    })
+  })
+}
+function QueryTuan(activeId, tuanId) {
+  return new Promise((resolve) => {
+    const body = `activeId=${escape(activeId)}&tuanId=${escape(tuanId)}`;
+    const options = taskTuanUrl(`QueryTuan`, body, `_time,activeId,tuanId`)
+    $.get(options, async (err, resp, data) => {
+      try {
+        if (err) {
+          console.log(`${JSON.stringify(err)}`)
+          console.log(`${$.name} API请求失败，请检查网路重试`);
+        } else {
+          if (safeGet(data)) {
+            data = JSON.parse(data);
+            if (data['ret'] === 0) {
+              // $.log(`\n开团情况:${data.data.tuanInfo.realTuanNum}/${data.data.tuanInfo.tuanNum}\n`)
+            } else {
+              console.log(`异常：${JSON.stringify(data)}`);
+            }
+          }
+        }
+      } catch (e) {
+        $.logErr(e, resp)
+      } finally {
+        resolve(data);
+      }
+    })
+  })
+}
+//开团API
+function CreateTuan() {
+  return new Promise((resolve) => {
+    const body = `activeId=${escape(tuanActiveId)}&isOpenApp=1`
+    const options = taskTuanUrl(`CreateTuan`, body, '_time,activeId,isOpenApp')
+    $.get(options, async (err, resp, data) => {
+      try {
+        if (err) {
+          console.log(`${JSON.stringify(err)}`)
+          console.log(`${$.name} API请求失败，请检查网路重试`);
+        } else {
+          if (safeGet(data)) {
+            data = JSON.parse(data);
+            if (data['ret'] === 0) {
+              console.log(`【开团成功】tuanId为 ${data.data['tuanId']}`);
+              $.tuanIds.push(data.data['tuanId']);
+            } else {
+              //{"msg":"活动已结束，请稍后再试~","nowTime":1621551005,"ret":10218}
+              if (data['ret'] === 10218 && !hasSend && (new Date().getHours() % 6 === 0)) {
+                hasSend = true;
+                $.msg($.name, '', `京喜工厂拼团瓜分电力活动团ID（activeId）已失效\n请自行抓包替换(Node环境变量为TUAN_ACTIVEID，iOS端在BoxJx)或者联系作者等待更新`);
+                if ($.isNode()) await notify.sendNotify($.name, `京喜工厂拼团瓜分电力活动团ID（activeId）已失效\n请自行抓包替换(Node环境变量为TUAN_ACTIVEID，iOS端在BoxJx)或者联系作者等待更新`)
+              }
+              console.log(`开团异常：${JSON.stringify(data)}`);
+            }
+          }
+        }
+      } catch (e) {
+        $.logErr(e, resp)
+      } finally {
+        resolve();
+      }
+    })
+  })
+}
+
+function JoinTuan(tuanId, stk = '_time,activeId,tuanId') {
+  return new Promise((resolve) => {
+    const body = `activeId=${escape(tuanActiveId)}&tuanId=${escape(tuanId)}`;
+    const options = taskTuanUrl(`JoinTuan`, body, '_time,activeId,tuanId')
+    $.get(options, async (err, resp, data) => {
+      try {
+        if (err) {
+          console.log(`${JSON.stringify(err)}`)
+          console.log(`${$.name} API请求失败，请检查网路重试`);
+        } else {
+          if (safeGet(data)) {
+            data = JSON.parse(data);
+            if (data['ret'] === 0) {
+              console.log(`参团成功：${JSON.stringify(data)}\n`);
+            } else if (data['ret'] === 10005 || data['ret'] === 10206) {
+              //火爆，或者今日参团机会已耗尽
+              console.log(`参团失败：${JSON.stringify(data)}\n`);
+              $.canHelp = false;
+            } else {
+              console.log(`参团失败：${JSON.stringify(data)}\n`);
+            }
+          }
+        }
+      } catch (e) {
+        $.logErr(e, resp)
+      } finally {
+        resolve();
+      }
+    })
+  })
+}
+//查询所有的团情况(自己开团以及参加别人的团)
+function QueryAllTuan() {
+  return new Promise((resolve) => {
+    const body = `activeId=${escape(tuanActiveId)}&pageNo=1&pageSize=10`;
+    const options = taskTuanUrl(`QueryAllTuan`, body, '_time,activeId,pageNo,pageSize')
+    $.get(options, async (err, resp, data) => {
+      try {
+        if (err) {
+          console.log(`${JSON.stringify(err)}`)
+          console.log(`${$.name} API请求失败，请检查网路重试`);
+        } else {
+          if (safeGet(data)) {
+            data = JSON.parse(data);
+            if (data['ret'] === 0) {
+              const { tuanInfo } = data;
+              for (let item of tuanInfo) {
+                if (item.tuanNum === item.realTuanNum) {
+                  // console.log(`参加团主【${item.tuanLeader}】已成功`)
+                  const { userInfo } = item;
+                  for (let item2 of userInfo) {
+                    if (item2.encryptPin === $.encryptPin) {
+                      if (item2.receiveElectric && item2.receiveElectric > 0) {
+                        console.log(`${new Date(item2.joinTime * 1000).toLocaleString()}参加团主【${item2.nickName}】的奖励已经领取成功`)
+                      } else {
+                        console.log(`开始领取${new Date(item2.joinTime * 1000).toLocaleString()}参加团主【${item2.nickName}】的奖励`)
+                        await tuanAward(item.tuanActiveId, item.tuanId, item.tuanLeader === $.encryptPin);//isTuanLeader
+                      }
+                    }
+                  }
+                } else {
+                  console.log(`${new Date(item.beginTime * 1000).toLocaleString()}参加团主【${item.tuanLeader}】失败`)
+                }
+              }
+            } else {
+              console.log(`QueryAllTuan异常：${JSON.stringify(data)}`);
+            }
+          }
+        }
+      } catch (e) {
+        $.logErr(e, resp)
+      } finally {
+        resolve(data);
+      }
+    })
+  })
+}
+//开团人的领取奖励API
+function tuanAward(activeId, tuanId, isTuanLeader = true) {
+  return new Promise((resolve) => {
+    const body = `activeId=${escape(activeId)}&tuanId=${escape(tuanId)}`;
+    const options = taskTuanUrl(`Award`, body, '_time,activeId,tuanId')
+    $.get(options, async (err, resp, data) => {
+      try {
+        if (err) {
+          console.log(`${JSON.stringify(err)}`)
+          console.log(`${$.name} API请求失败，请检查网路重试`);
+        } else {
+          if (safeGet(data)) {
+            data = JSON.parse(data);
+            if (data['ret'] === 0) {
+              if (isTuanLeader) {
+                console.log(`开团奖励(团长)${data.data['electric']}领取成功`);
+                message += `【开团(团长)奖励】${data.data['electric']}领取成功\n`;
+                if ($.surplusOpenTuanNum > 0) {
+                  $.log(`开团奖励(团长)已领取，准备开团`);
+                  await CreateTuan();
+                }
+              } else {
+                console.log(`参团奖励${data.data['electric']}领取成功`);
+                message += `【参团奖励】${data.data['electric']}领取成功\n`;
+              }
+            } else if (data['ret'] === 10212) {
+              console.log(`${JSON.stringify(data)}`);
+
+              if (isTuanLeader && $.surplusOpenTuanNum > 0) {
+                $.log(`团奖励已领取，准备开团`);
+                await CreateTuan();
+              }
+            } else {
+              console.log(`异常：${JSON.stringify(data)}`);
+            }
+          }
+        }
+      } catch (e) {
+        $.logErr(e, resp)
+      } finally {
+        resolve();
+      }
+    })
+  })
+}
 
 function updateTuanIdsCDN(url) {
   return new Promise(async resolve => {
@@ -975,6 +1373,76 @@ async function showMsg() {
     } else {
       $.log(`\n${message}`);
     }
+    resolve()
+  })
+}
+function readShareCode() {
+  console.log(`当前使用助力池${JD_ZLC_URL}`);
+  return new Promise(async resolve => {
+    $.get({url: `${JD_ZLC_URL}/jxfactory`, 'timeout': 10000}, (err, resp, data) => {
+      try {
+        if (err) {
+          console.log(`${JSON.stringify(err)}`)
+          console.log(`${$.name} API请求失败，请检查网路重试`)
+        } else {
+          if (data) {
+            console.log(`随机取${randomCount}个码放到您固定的互助码后面(不影响已有固定互助)`)
+            data = JSON.parse(data);
+          }
+        }
+      } catch (e) {
+        $.logErr(e, resp)
+      } finally {
+        resolve(data);
+      }
+    })
+    await $.wait(10000);
+    resolve()
+  })
+}
+//格式化助力码
+function shareCodesFormat() {
+  return new Promise(async resolve => {
+    console.log(`第${$.index}个京东账号的助力码:::${$.shareCodesArr[$.index - 1]}`)
+    newShareCodes = [];
+    if ($.shareCodesArr[$.index - 1]) {
+      newShareCodes = $.shareCodesArr[$.index - 1].split('@');
+    } else {
+      // console.log(`由于您第${$.index}个京东账号未提供shareCode,将采纳本脚本自带的助力码\n`)
+      const tempIndex = $.index > inviteCodes.length ? (inviteCodes.length - 1) : ($.index - 1);
+      newShareCodes = inviteCodes[tempIndex].split('@');
+    }
+    if (!ZLC) {
+      console.log(`您设置了不加入助力池，跳过\n`)
+    } else {
+      const readShareCodeRes = await readShareCode();
+      if (readShareCodeRes && readShareCodeRes.code === 200) {
+        newShareCodes = [...new Set([...newShareCodes, ...(readShareCodeRes.data || [])])];
+      }
+    }
+    console.log(`第${$.index}个京东账号将要助力的好友${JSON.stringify(newShareCodes)}`)
+    resolve();
+  })
+}
+function requireConfig() {
+  return new Promise(async resolve => {
+    console.log(`开始获取${$.name}配置文件\n`);
+    //Node.js用户请在jdCookie.js处填写京东ck;
+    const shareCodes = $.isNode() ? require('./jdDreamFactoryShareCodes.js') : '';
+    console.log(`共${cookiesArr.length}个京东账号\n`);
+    $.shareCodesArr = [];
+    if ($.isNode()) {
+      Object.keys(shareCodes).forEach((item) => {
+        if (shareCodes[item]) {
+          $.shareCodesArr.push(shareCodes[item])
+        }
+      })
+    } else {
+      if ($.getdata('jd_jxFactory')) $.shareCodesArr = $.getdata('jd_jxFactory').split('\n').filter(item => item !== "" && item !== null && item !== undefined);
+      console.log(`\nBoxJs设置的${$.name}好友邀请码:${$.getdata('jd_jxFactory')}\n`);
+    }
+    // console.log(`\n种豆得豆助力码::${JSON.stringify($.shareCodesArr)}`);
+    console.log(`您提供了${$.shareCodesArr.length}个账号的${$.name}助力码\n`);
     resolve()
   })
 }
