@@ -1,6 +1,5 @@
 /*
-cron "30 * * * *" jd_CheckCK.js, tag:京东CK检测by-ccwav
-fix by faker
+cron "30 2-22/2 * * *" jd_CheckCK.js, tag:京东CK检测by-ccwav
  */
 //详细说明参考 https://github.com/ccwav/QLScript2.
 const $ = new Env('京东CK检测');
@@ -195,7 +194,7 @@ if ($.isNode() && process.env.CHECKCK_ALLNOTIFY) {
                 ReturnMessageTitle = `【账号${IndexAll}🆔】${$.UserName2}`;
             }
 
-            await TotalBean();
+            // await TotalBean();
             if ($.NoReturn) {
                 console.log(`接口1检测失败，尝试使用接口2....\n`);
                 await isLoginByX1a0He();
@@ -484,7 +483,7 @@ if ($.isNode() && process.env.CHECKCK_ALLNOTIFY) {
 })()
 .catch((e) => $.logErr(e))
 .finally(() => $.done())
-$.UA = require('./USER_AGENTS').UARAM();
+
 function TotalBean() {
     return new Promise(async resolve => {
         const options = {
@@ -494,7 +493,7 @@ function TotalBean() {
                 Accept: "*/*",
                 Connection: "keep-alive",
                 Cookie: cookie,
-                "User-Agent": $.UA,
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36 Edg/106.0.1370.42",
                 "Accept-Language": "zh-cn",
                 "Referer": "https://home.m.jd.com/myJd/newhome.action?sceneval=2&ufc=&",
                 "Accept-Encoding": "gzip, deflate, br"
@@ -545,7 +544,7 @@ function isLoginByX1a0He() {
             headers: {
                 "Cookie": cookie,
                 "referer": "https://h5.m.jd.com/",
-                "User-Agent": $.UA,
+                "User-Agent": "jdapp;iPhone;10.1.2;15.0;network/wifi;Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148;supportJDSHWK/1",
             },
         }
         $.get(options, (err, resp, data) => {
